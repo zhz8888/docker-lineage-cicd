@@ -15,6 +15,7 @@ ENV LOGS_DIR /srv/logs
 ENV USERSCRIPTS_DIR /srv/userscripts
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV TZ Asia/Shanghai
 ENV USER root
 
 # Configurable environment variables
@@ -49,6 +50,10 @@ ENV RELEASE_TYPE 'UNOFFICIAL'
 # OTA URL that will be used inside CMUpdater
 # Use this in combination with LineageOTA to make sure your device can auto-update itself from this buildbot
 ENV OTA_URL ''
+
+# Using Chinese mirror for the clone process, mirror source is tsinghua
+# https://mirrors.tuna.tsinghua.edu.cn/help/lineageOS/
+ENV USE_CN_MIRROR false
 
 # User identity
 ENV USER_NAME 'LineageOS Buildbot'
@@ -175,14 +180,14 @@ RUN mkdir -p $MIRROR_DIR $SRC_DIR $TMP_DIR $CCACHE_DIR $ZIP_DIR $LMANIFEST_DIR \
 
 # Install build dependencies
 ############################
-RUN apt-get -qq update && \
+RUN apt-get -qq update && apt-get -qq upgrade -y && \
       apt-get install -y bc bison bsdmainutils build-essential ccache cgpt clang \
       cron curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick \
       kmod lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool \
       libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 \
       libxml2-utils lsof lzop maven openjdk-8-jdk pngcrush procps python3 \
       python-is-python3 rsync schedtool squashfs-tools wget xdelta3 xsltproc yasm zip \
-      zlib1g-dev \
+      zlib1g-dev tzdata jq xmlstarlet \
       && rm -rf /var/lib/apt/lists/*
 
 RUN curl https://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/repo && \
