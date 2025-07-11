@@ -54,9 +54,11 @@
 #     - call `do_cleanup`
 # - call `end.sh`
 
+CURRENT_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+
 # do_cleanup function
 do_cleanup() {
-  echo ">> [$(date)] Cleaning up" | tee -a "$DEBUG_LOG"
+  echo ">> [$CURRENT_DATE] Cleaning up" | tee -a "$DEBUG_LOG"
 
   if [ "$BUILD_OVERLAY" = true ]; then
     # The Jack server must be stopped manually, as we want to unmount $TMP_DIR/merged
@@ -74,18 +76,18 @@ do_cleanup() {
   fi
 
   if [ "$CLEAN_AFTER_BUILD" = true ]; then
-    echo ">> [$(date)] Cleaning source dir for device $codename" | tee -a "$DEBUG_LOG"
+    echo ">> [$CURRENT_DATE] Cleaning source dir for device $codename" | tee -a "$DEBUG_LOG"
     if [ "$BUILD_OVERLAY" = true ]; then
-      echo ">> [$(date)] Removing $TMP_DIR for device $codename" | tee -a "$DEBUG_LOG"
+      echo ">> [$CURRENT_DATE] Removing $TMP_DIR for device $codename" | tee -a "$DEBUG_LOG"
       cd "$TMP_DIR"
       rm -rf ./* || true
     else
       cd "$source_dir"
-      echo ">> [$(date)] Removing $PWD/out" | tee -a "$DEBUG_LOG"
+      echo ">> [$CURRENT_DATE] Removing $PWD/out" | tee -a "$DEBUG_LOG"
       rm -rf out || true
-      echo ">> [$(date)] Removing $PWD/vendor" | tee -a "$DEBUG_LOG"
+      echo ">> [$CURRENT_DATE] Removing $PWD/vendor" | tee -a "$DEBUG_LOG"
       rm -rf vendor/* || true
-      echo ">> [$(date)] Removing $PWD/.repo/local_manifests/roomservice.xml" | tee -a "$DEBUG_LOG"
+      echo ">> [$CURRENT_DATE] Removing $PWD/.repo/local_manifests/roomservice.xml" | tee -a "$DEBUG_LOG"
       rm -f .repo/local_manifests/roomservice.xml
     fi
   fi
@@ -101,16 +103,16 @@ cd "$SRC_DIR"
 
 # Call `begin.sh`
 if [ -f /root/userscripts/begin.sh ]; then
-  echo ">> [$(date)] Running begin.sh"
-  /root/userscripts/begin.sh || { echo ">> [$(date)] Error: begin.sh failed!"; exit 1; }
+  echo ">> [$CURRENT_DATE] Running begin.sh"
+  /root/userscripts/begin.sh || { echo ">> [$CURRENT_DATE] Error: begin.sh failed!"; exit 1; }
 fi
 
 # Handle parameters and environment variables
 branch=$BRANCH_NAME
-echo ">> [$(date)] Branch:  $branch"
+echo ">> [$CURRENT_DATE] Branch:  $branch"
 
 devices=$DEVICE_LIST
-echo ">> [$(date)] Devices: $devices"
+echo ">> [$CURRENT_DATE] Devices: $devices"
 
 vendor=lineage
 
@@ -121,7 +123,7 @@ fi
 
 ## CLEAN_OUTDIR
 if [ "$CLEAN_OUTDIR" = true ]; then
- echo ">> [$(date)] Cleaning '$ZIP_DIR'"
+ echo ">> [$CURRENT_DATE] Cleaning '$ZIP_DIR'"
  rm -rf "${ZIP_DIR:?}/"*
 fi
 
@@ -159,7 +161,7 @@ cd "$SRC_DIR/$branch_dir"
 branch_num=${branch##*-}
 themuppets_branch=$branch
 android_version=$(echo "($branch_num - 7)" | bc)
-echo ">> [$(date)] Android version: $android_version"
+echo ">> [$CURRENT_DATE] Android version: $android_version"
 android_version_major=$(echo "($branch_num - 7) / 1" | bc)
 
 if [ "$RESET_VENDOR_UNDO_PATCHES" = true ]; then
@@ -174,12 +176,12 @@ if [ "$RESET_VENDOR_UNDO_PATCHES" = true ]; then
     fi
   done
 else
-  echo ">> [$(date)] Resetting vendor and undoing patches disabled" | tee -a "$repo_log"
+  echo ">> [$CURRENT_DATE] Resetting vendor and undoing patches disabled" | tee -a "$repo_log"
 fi
 
 # Handle local manifests
 ## Copy local manifests
-echo ">> [$(date)] Copying '$LMANIFEST_DIR/*.xml' to '.repo/local_manifests/'"
+echo ">> [$CURRENT_DATE] Copying '$LMANIFEST_DIR/*.xml' to '.repo/local_manifests/'"
 mkdir -p .repo/local_manifests
 rsync -a --delete --include '*.xml' --exclude '*' "$LMANIFEST_DIR/" .repo/local_manifests/
 
@@ -189,18 +191,18 @@ if [ "$LOCAL_MIRROR" = true ]; then
   cd "$MIRROR_DIR"
   if [ "$INIT_MIRROR" = true ]; then
     if [ ! -d .repo ]; then
-      echo ">> [$(date)] Initializing mirror repository" | tee -a "$repo_log"
+      echo ">> [$CURRENT_DATE] Initializing mirror repository" | tee -a "$repo_log"
       ( yes||: ) | repo init -u https://github.com/LineageOS/mirror --mirror --no-clone-bundle -p linux --git-lfs &>> "$repo_log"
     fi
   else
-    echo ">> [$(date)] Initializing mirror repository disabled" | tee -a "$repo_log"
+    echo ">> [$CURRENT_DATE] Initializing mirror repository disabled" | tee -a "$repo_log"
   fi
   if [ "$SYNC_MIRROR" = true ]; then
-    echo ">> [$(date)] Syncing mirror repository" | tee -a "$repo_log"
+    echo ">> [$CURRENT_DATE] Syncing mirror repository" | tee -a "$repo_log"
     repo sync "${jobs_arg[@]}" "${retry_fetches_arg[@]}" --force-sync --no-clone-bundle &>> "$repo_log"
 
   else
-    echo ">> [$(date)] Sync mirror repository disabled" | tee -a "$repo_log"
+    echo ">> [$CURRENT_DATE] Sync mirror repository disabled" | tee -a "$repo_log"
   fi
   cd "$source_dir"
 fi
@@ -230,62 +232,62 @@ for codename in ${devices//,/ }; do
     ## Pick up TheMuppets manifest if required
     rm -f .repo/local_manifests/proprietary.xml
     if [ "$INCLUDE_PROPRIETARY" = true ]; then
-      wget -q -O .repo/local_manifests/proprietary.xml "https://raw.githubusercontent.com/TheMuppets/manifests/$themuppets_branch/muppets.xml"
+      wget -q -O .repo/local_manifests/proprietary.xml "https://gh.65945501.xyz/https://raw.githubusercontent.com/TheMuppets/manifests/$themuppets_branch/muppets.xml"
       /root/build_manifest.py --remote "https://gitlab.com" --remotename "gitlab_https" \
         "https://gitlab.com/the-muppets/manifest/raw/$themuppets_branch/muppets.xml" .repo/local_manifests/proprietary_gitlab.xml
     fi
 
     # `repo init`
     if [ "$CALL_REPO_INIT" = true ]; then
-      echo ">> [$(date)] (Re)initializing branch repository" | tee -a "$repo_log"
+      echo ">> [$CURRENT_DATE] (Re)initializing branch repository" | tee -a "$repo_log"
       if [ "$LOCAL_MIRROR" = true ]; then
         ( yes||: ) | repo init -u https://github.com/LineageOS/android.git --reference "$MIRROR_DIR" -b "$branch" -g default,-darwin,-muppets,muppets_"${codename}" --git-lfs &>> "$repo_log"
       else
         ( yes||: ) | repo init -u https://github.com/LineageOS/android.git -b "$branch" -g default,-darwin,-muppets,muppets_"${codename}" --git-lfs &>> "$repo_log"
       fi
     else
-      echo ">> [$(date)] Calling repo init disabled"
+      echo ">> [$CURRENT_DATE] Calling repo init disabled"
     fi
 
     # `repo sync`
     repo_sync_returncode=0
     if [ "$CALL_REPO_SYNC" = true ]; then
       set +eu
-      echo ">> [$(date)] Syncing branch repository" | tee -a "$repo_log"
+      echo ">> [$CURRENT_DATE] Syncing branch repository" | tee -a "$repo_log"
       repo sync "${jobs_arg[@]}" "${retry_fetches_arg[@]}" --current-branch --force-sync &>> "$repo_log"
       repo_sync_returncode=$?
       set -eu
     else
-      echo ">> [$(date)] Syncing branch repository disabled" | tee -a "$repo_log"
+      echo ">> [$CURRENT_DATE] Syncing branch repository disabled" | tee -a "$repo_log"
     fi
 
     if [ $repo_sync_returncode -ne 0 ]; then
-        echo ">> [$(date)] repo sync failed for $codename, $branch branch" | tee -a "$DEBUG_LOG"
+        echo ">> [$CURRENT_DATE] repo sync failed for $codename, $branch branch" | tee -a "$DEBUG_LOG"
         # call post-build.sh so the failure is logged in a way that is more visible
         if [ -f /root/userscripts/post-build.sh ]; then
-          echo ">> [$(date)] Running post-build.sh for $codename" >> "$DEBUG_LOG"
-          /root/userscripts/post-build.sh "$codename" false "$branch" &>> "$DEBUG_LOG" || echo ">> [$(date)] Warning: post-build.sh failed!"
+          echo ">> [$CURRENT_DATE] Running post-build.sh for $codename" >> "$DEBUG_LOG"
+          /root/userscripts/post-build.sh "$codename" false "$branch" &>> "$DEBUG_LOG" || echo ">> [$CURRENT_DATE] Warning: post-build.sh failed!"
         fi
         do_cleanup
         continue
     fi
 
     if [ "$WITH_GMS" = true ]; then
-      echo ">> [$(date)] Populating vendor/partner_gms-tv/products" | tee -a "$repo_log"
+      echo ">> [$CURRENT_DATE] Populating vendor/partner_gms-tv/products" | tee -a "$repo_log"
       rm -rf "$source_dir/vendor/partner_gms-tv" || true
       mkdir -p  "$source_dir/vendor/partner_gms-tv/products"
       cp  -r "$source_dir/vendor/partner_gms/products/"  "$source_dir/vendor/partner_gms-tv/" | tee -a "$DEBUG_LOG"
     fi
 
     if [ "$CALL_GIT_LFS_PULL" = true ]; then
-      echo ">> [$(date)] Calling git lfs pull" | tee -a "$repo_log"
+      echo ">> [$CURRENT_DATE] Calling git lfs pull" | tee -a "$repo_log"
       repo forall -v -c git lfs pull &>> "$repo_log"
     else
-      echo ">> [$(date)] Calling git lfs pull disabled" | tee -a "$repo_log"
+      echo ">> [$CURRENT_DATE] Calling git lfs pull disabled" | tee -a "$repo_log"
     fi
 
     if [ ! -d "vendor/$vendor" ]; then
-      echo ">> [$(date)] Missing \"vendor/$vendor\", aborting"
+      echo ">> [$CURRENT_DATE] Missing \"vendor/$vendor\", aborting"
       exit 1
     fi
 
@@ -319,11 +321,11 @@ for codename in ${devices//,/ }; do
 #    DEBUG_LOG="$LOGS_DIR/$logsubdir/lineage-$los_ver-$builddate-$RELEASE_TYPE-$codename.log"
 
     # Set RELEASE_TYPE
-    echo ">> [$(date)] Setting \"$RELEASE_TYPE\" as release type"
+    echo ">> [$CURRENT_DATE] Setting \"$RELEASE_TYPE\" as release type"
     sed -i "/\$(filter .*\$(${vendor^^}_BUILDTYPE)/,/endif/d" "$makefile_containing_version"
 
     # Set a custom updater URI if a OTA URL is provided
-    echo ">> [$(date)] Adding OTA URL overlay (for custom URL $OTA_URL)"
+    echo ">> [$CURRENT_DATE] Adding OTA URL overlay (for custom URL $OTA_URL)"
     if [ -n "$OTA_URL" ]; then
       if [ -d "packages/apps/Updater/app/src/main/res/values" ]; then
         # "New" Updater project structure
@@ -332,7 +334,7 @@ for codename in ${devices//,/ }; do
         # "Old" Updater project structure
         updater_values_dir="packages/apps/Updater/res/values"
       else
-        echo ">> [$(date)] ERROR: no 'values' dir of Updater app found"
+        echo ">> [$CURRENT_DATE] ERROR: no 'values' dir of Updater app found"
         exit 1
       fi
 
@@ -346,20 +348,20 @@ for codename in ${devices//,/ }; do
         # "Old" updater configuration: just the URL
         sed "s|{name}|conf_update_server_url_def|g; s|{url}|$OTA_URL|g" /root/packages_updater_strings.xml > "$updater_url_overlay_dir/strings.xml"
       else
-        echo ">> [$(date)] ERROR: no known Updater URL property found"
+        echo ">> [$CURRENT_DATE] ERROR: no known Updater URL property found"
         exit 1
       fi
     fi
 
     # Add custom packages to be installed
     if [ -n "$CUSTOM_PACKAGES" ]; then
-      echo ">> [$(date)] Adding custom packages ($CUSTOM_PACKAGES)"
+      echo ">> [$CURRENT_DATE] Adding custom packages ($CUSTOM_PACKAGES)"
       sed -i "1s;^;PRODUCT_PACKAGES += $CUSTOM_PACKAGES\n\n;" "vendor/$vendor/config/common.mk"
     fi
 
     # Handle keys
     if [ "$SIGN_BUILDS" = true ]; then
-      echo ">> [$(date)] Adding keys path ($KEYS_DIR)"
+      echo ">> [$CURRENT_DATE] Adding keys path ($KEYS_DIR)"
       # Soong (Android 9+) complains if the signing keys are outside the build path
       ln -sf "$KEYS_DIR" user-keys
       if [ "$android_version_major" -lt "10" ]; then
@@ -373,23 +375,23 @@ for codename in ${devices//,/ }; do
 
     # Prepare the environment
     if [ "$PREPARE_BUILD_ENVIRONMENT" = true ]; then
-      echo ">> [$(date)] Preparing build environment"
+      echo ">> [$CURRENT_DATE] Preparing build environment"
       set +eu
       # shellcheck source=/dev/null
       source build/envsetup.sh > /dev/null
       set -eu
     else
-      echo ">> [$(date)] Preparing build environment disabled"
+      echo ">> [$CURRENT_DATE] Preparing build environment disabled"
     fi
 
     userscriptfail=false
 
     # Call `before.sh`
     if [ -f /root/userscripts/before.sh ]; then
-      echo ">> [$(date)] Running before.sh"
+      echo ">> [$CURRENT_DATE] Running before.sh"
       echo "before.sh is now called *after* repo sync."
       echo "In previous versions, iot was called *before* repo sync"
-      /root/userscripts/before.sh "$branch" || { echo ">> [$(date)] Error: before.sh failed for $branch!"; userscriptfail=true; continue; }
+      /root/userscripts/before.sh "$branch" || { echo ">> [$CURRENT_DATE] Error: before.sh failed for $branch!"; userscriptfail=true; continue; }
     fi
 
     # Call breakfast
@@ -400,15 +402,15 @@ for codename in ${devices//,/ }; do
       breakfast_returncode=$?
       set -eu
     else
-      echo ">> [$(date)] Calling breakfast disabled"
+      echo ">> [$CURRENT_DATE] Calling breakfast disabled"
     fi
 
     if [ $breakfast_returncode -ne 0 ]; then
-        echo ">> [$(date)] breakfast failed for $codename, $branch branch" | tee -a "$DEBUG_LOG"
+        echo ">> [$CURRENT_DATE] breakfast failed for $codename, $branch branch" | tee -a "$DEBUG_LOG"
         # call post-build.sh so the failure is logged in a way that is more visible
         if [ -f /root/userscripts/post-build.sh ]; then
-          echo ">> [$(date)] Running post-build.sh for $codename" >> "$DEBUG_LOG"
-          /root/userscripts/post-build.sh "$codename" false "$branch" &>> "$DEBUG_LOG" || echo ">> [$(date)] Warning: post-build.sh failed!"
+          echo ">> [$CURRENT_DATE] Running post-build.sh for $codename" >> "$DEBUG_LOG"
+          /root/userscripts/post-build.sh "$codename" false "$branch" &>> "$DEBUG_LOG" || echo ">> [$CURRENT_DATE] Warning: post-build.sh failed!"
         fi
         do_cleanup
         continue
@@ -416,21 +418,21 @@ for codename in ${devices//,/ }; do
 
     # Call pre-build.sh
     if [ -f /root/userscripts/pre-build.sh ]; then
-      echo ">> [$(date)] Running pre-build.sh for $codename" >> "$DEBUG_LOG"
+      echo ">> [$CURRENT_DATE] Running pre-build.sh for $codename" >> "$DEBUG_LOG"
       /root/userscripts/pre-build.sh "$codename" "$branch" &>> "$DEBUG_LOG" || {
-        echo ">> [$(date)] Error: pre-build.sh failed for $codename on $branch!"; userscriptfail=true; continue; }
+        echo ">> [$CURRENT_DATE] Error: pre-build.sh failed for $codename on $branch!"; userscriptfail=true; continue; }
     fi
 
     # Call mka
     build_successful=true
     if [ "$CALL_MKA" = true ]; then
       # Start the build
-      echo ">> [$(date)] Starting build for $codename, $branch branch" | tee -a "$DEBUG_LOG"
+      echo ">> [$CURRENT_DATE] Starting build for $codename, $branch branch" | tee -a "$DEBUG_LOG"
       build_successful=false
       files_to_hash=()
 
       if (set +eu ; mka "${jobs_arg[@]}" target-files-package bacon) &>> "$DEBUG_LOG"; then
-        echo ">> [$(date)] Moving build artifacts for $codename to '$ZIP_DIR/$zipsubdir'" | tee -a "$DEBUG_LOG"
+        echo ">> [$CURRENT_DATE] Moving build artifacts for $codename to '$ZIP_DIR/$zipsubdir'" | tee -a "$DEBUG_LOG"
 
         # Move the ROM zip files to the main OUT directory
         cd out/target/product/"$codename"
@@ -451,7 +453,7 @@ for codename in ${devices//,/ }; do
         for image in recovery boot vendor_boot dtbo super_empty vbmeta vendor_kernel_boot init_boot; do
           if [ -f "$image.img" ]; then
             recovery_name="lineage-$los_ver-$builddate-$RELEASE_TYPE-$codename-$image.img"
-            echo ">> [$(date)] Copying $image.img" to "$ZIP_DIR/$zipsubdir/$recovery_name" >> "$DEBUG_LOG"
+            echo ">> [$CURRENT_DATE] Copying $image.img" to "$ZIP_DIR/$zipsubdir/$recovery_name" >> "$DEBUG_LOG"
             cp "$image.img" "$ZIP_DIR/$zipsubdir/$recovery_name" &>> "$DEBUG_LOG"
             files_to_hash+=( "$recovery_name" )
           fi
@@ -465,7 +467,7 @@ for codename in ${devices//,/ }; do
         cd "$source_dir"
         build_successful=true
       else
-        echo ">> [$(date)] Failed build for $codename" | tee -a "$DEBUG_LOG"
+        echo ">> [$CURRENT_DATE] Failed build for $codename" | tee -a "$DEBUG_LOG"
       fi
 
       # Remove old zips and logs
@@ -484,26 +486,26 @@ for codename in ${devices//,/ }; do
         fi
       fi
     else
-      echo ">> [$(date)] Calling mka for $codename, $branch branch disabled"
+      echo ">> [$CURRENT_DATE] Calling mka for $codename, $branch branch disabled"
     fi
 
     # call post-build.sh
     if [ -f /root/userscripts/post-build.sh ]; then
-      echo ">> [$(date)] Running post-build.sh for $codename" >> "$DEBUG_LOG"
+      echo ">> [$CURRENT_DATE] Running post-build.sh for $codename" >> "$DEBUG_LOG"
       /root/userscripts/post-build.sh "$codename" "$build_successful" "$branch" &>> "$DEBUG_LOG" || {
-        echo ">> [$(date)] Error: post-build.sh failed for $codename on $branch!"; userscriptfail=true; }
+        echo ">> [$CURRENT_DATE] Error: post-build.sh failed for $codename on $branch!"; userscriptfail=true; }
     fi
-    echo ">> [$(date)] Finishing build for $codename" | tee -a "$DEBUG_LOG"
+    echo ">> [$CURRENT_DATE] Finishing build for $codename" | tee -a "$DEBUG_LOG"
 
     do_cleanup
     if [ "$userscriptfail" = true ]; then
-      echo ">> [$(date)] One or more userscripts failed!"
+      echo ">> [$CURRENT_DATE] One or more userscripts failed!"
       exit 1
     fi
   fi
 done
 
 if [ -f /root/userscripts/end.sh ]; then
-  echo ">> [$(date)] Running end.sh"
-  /root/userscripts/end.sh || echo ">> [$(date)] Error: end.sh failed!"
+  echo ">> [$CURRENT_DATE] Running end.sh"
+  /root/userscripts/end.sh || echo ">> [$CURRENT_DATE] Error: end.sh failed!"
 fi

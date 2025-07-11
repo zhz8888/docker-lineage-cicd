@@ -19,11 +19,13 @@
 
 set -eEuo pipefail
 
+CURRENT_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+
 # Copy the user scripts
 mkdir -p /root/userscripts
 cp -r "$USERSCRIPTS_DIR"/. /root/userscripts
-find /root/userscripts ! -type d ! -user root -exec echo ">> [$(date)] {} is not owned by root, removing" \; -exec rm {} \;
-find /root/userscripts ! -type d -perm /g=w,o=w -exec echo ">> [$(date)] {} is writable by non-root users, removing" \; -exec rm {} \;
+find /root/userscripts ! -type d ! -user root -exec echo ">> [$CURRENT_DATE] {} is not owned by root, removing" \; -exec rm {} \;
+find /root/userscripts ! -type d -perm /g=w,o=w -exec echo ">> [$CURRENT_DATE] {} is writable by non-root users, removing" \; -exec rm {} \;
 
 # Initialize CCache if it will be used
 if [ "$USE_CCACHE" = 1 ]; then
@@ -34,10 +36,14 @@ fi
 git config --global user.name "$USER_NAME"
 git config --global user.email "$USER_MAIL"
 
+git config --global url.https://mirrors.ustc.edu.cn/aosp/.insteadof https://android.googlesource.com
+git config --global url.https://gh.65945501.xyz/github.com/.insteadof https://github.com
+sed -i 's/gerrit.googlesource.com/gh.65945501.xyz\/github.com\/GerritCodeReview/g' /usr/local/bin/repo
+
 if [ "$SIGN_BUILDS" = true ]; then
   for c in bluetooth media networkstack nfc platform releasekey sdk_sandbox shared testcert verity ; do
     if [ ! -f "$KEYS_DIR/$c.pk8" ]; then
-      echo ">> [$(date)]  Generating $c..."
+      echo ">> [$CURRENT_DATE]  Generating $c..."
       /root/make_key "$KEYS_DIR/$c" "$KEYS_SUBJECT" <<< '' &> /dev/null
     fi
   done
